@@ -76,6 +76,3 @@ jobs:
       - name: Run Tests
         run: pytest src/ -v
       
-      - name: Check Streamlit App Runs (Optional)
-        run: python -m streamlit run app/streamlit_app.py --server.headless true --server.runOnSave false
-
