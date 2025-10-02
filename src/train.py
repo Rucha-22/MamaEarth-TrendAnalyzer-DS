@@ -35,8 +35,7 @@ y_pred = pipeline.predict(X_test)
 print("Accuracy:", accuracy_score(y_test, y_pred))
 print("\nClassification Report:\n", classification_report(y_test, y_pred))
 
-# Save pipeline (single .pkl)
-model_path = "src/sentiment_pipeline.pkl"
-joblib.dump(pipeline, model_path)
+model = LogisticRegression()
+joblib.dump(model, "src/test_model.pkl")
+print("Model saved!")
 
-print(f"✅ Model pipeline saved at: {model_path}")
