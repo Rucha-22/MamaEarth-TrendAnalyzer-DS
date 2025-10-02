@@ -2,84 +2,90 @@ import streamlit as st
 import pickle
 import joblib
 import shap
-import matplotlib.pyplot as plt
 import os
-import numpy as np
+import re
 
 # -----------------------------
-# Safe Loader for Pickle/Joblib
+# Load model safely
 # -----------------------------
-def load_pipeline(file_path):
+def load_model(file_path):
     if not os.path.exists(file_path):
         st.error(f"File not found: {file_path}")
         return None
-    
-    # Peek at the first byte
-    with open(file_path, "rb") as f:
-        first_byte = f.read(1)
-    
     try:
-        if first_byte == b'\x80':  # likely pickle
-            with open(file_path, "rb") as f:
-                data = pickle.load(f)
-            st.success(f"Loaded '{file_path}' using pickle.")
-        else:  # try joblib
-            data = joblib.load(file_path)
-            st.success(f"Loaded '{file_path}' using joblib.")
-        return data
-    except Exception as e:
-        st.error(f"Failed to load '{file_path}': {e}")
-        return None
+        with open(file_path, "rb") as f:
+            model = pickle.load(f)
+        st.success(f"Loaded '{file_path}' with pickle.")
+        return model
+    except:
+        try:
+            model = joblib.load(file_path)
+            st.success(f"Loaded '{file_path}' with joblib.")
+            return model
+        except Exception as e:
+            st.error(f"Failed to load '{file_path}': {e}")
+            return None
 
 # -----------------------------
-# Load Model & Vectorizer
+# Load pipeline model
 # -----------------------------
-model_file = "src/sentiment_model.pkl"       # Replace with your model file path
-vectorizer_file = "src/tfidf_vectorizer.pkl" # Your TfidfVectorizer file
-
-model_data = load_pipeline(model_file)
-vectorizer = load_pipeline(vectorizer_file)
-
-if model_data is None or vectorizer is None:
+model_file = "src/sentiment_pipeline.pkl"  # Replace with your model path
+model = load_model(model_file)
+if model is None:
     st.stop()
 
-model = model_data['model'] if isinstance(model_data, dict) and 'model' in model_data else model_data
-
 # -----------------------------
-# Streamlit App
+# Streamlit UI
 # -----------------------------
 st.title("Mama Earth Reviews Sentiment Analysis")
-st.write("Analyze sentiment of customer reviews and visualize insights.")
-
-# Input Section
-user_input = st.text_area("Enter a review:", "")
+user_input = st.text_area("Enter a review:")
 
 if st.button("Predict Sentiment"):
 
     if not user_input.strip():
-        st.warning("Please enter a review to analyze.")
+        st.warning("Please enter a review.")
     else:
-        # Transform text
-        X_input = vectorizer.transform([user_input])
-        X_input_dense = X_input.toarray()  # Convert sparse to dense for SHAP
+        X_input = [user_input]
 
         # Predict
         prediction = model.predict(X_input)[0]
-        prediction_proba = model.predict_proba(X_input)[0]
+        proba = model.predict_proba(X_input)[0]
         sentiment = "Positive" if prediction == 1 else "Negative"
 
-        st.success(f"Predicted Sentiment: {sentiment}")
-        st.info(f"Probability: Positive: {prediction_proba[1]:.2f}, Negative: {prediction_proba[0]:.2f}")
+        st.success(f"Sentiment: {sentiment}")
+        st.info(f"Probability → Positive: {proba[1]:.2f}, Negative: {proba[0]:.2f}")
 
         # -----------------------------
-        # SHAP Explainability
+        # SHAP Explanation
         # -----------------------------
-        st.subheader("SHAP Explanation")
+        st.subheader("Word-Level Sentiment Highlights")
         try:
-            explainer = shap.Explainer(model.predict_proba, X_input_dense)
-            shap_values = explainer(X_input_dense)
+            explainer = shap.Explainer(model, X_input, algorithm="partition")
+            shap_values = explainer(X_input)
 
-            # SHAP text plot
+            # Map words to SHAP contributions
+            word_vals = dict(zip(shap_values[0].data, shap_values[0].values))
+
+            # Highlight words in text
+            def highlight_text(text, word_vals):
+                def replacer(match):
+                    word = match.group(0)
+                    value = word_vals.get(word, 0)
+                    if value > 0:
+                        return f'<span style="background-color: #b6fcb6">{word}</span>'
+                    elif value < 0:
+                        return f'<span style="background-color: #fcb6b6">{word}</span>'
+                    else:
+                        return word
+                # Use regex to match words
+                return re.sub(r'\b\w+\b', replacer, text)
+
+            highlighted_review = highlight_text(user_input, word_vals)
+            st.markdown(highlighted_review, unsafe_allow_html=True)
+
+            # Optional: SHAP text plot
+            st.subheader("SHAP Text Plot")
             st.pyplot(shap.plots.text(shap_values[0], display=False))
+
         except Exception as e:
             st.error(f"SHAP explanation failed: {e}")
