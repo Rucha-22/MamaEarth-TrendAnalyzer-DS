@@ -3,7 +3,11 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, accuracy_score
 import joblib
+import os
 from preprocess import load_and_preprocess
+
+# Ensure src folder exists
+os.makedirs("src", exist_ok=True)
 
 # Load and preprocess dataset
 df = load_and_preprocess("data/dataframe_with_category_modified.csv")
@@ -22,7 +26,7 @@ X_train_vec = vectorizer.fit_transform(X_train)
 X_test_vec = vectorizer.transform(X_test)
 
 # Train model
-model = LogisticRegression(max_iter=1000)
+model = LogisticRegression(max_iter=1000, class_weight="balanced", random_state=42)
 model.fit(X_train_vec, y_train)
 
 # Evaluate
@@ -34,5 +38,5 @@ print("\nClassification Report:\n", classification_report(y_test, y_pred))
 joblib.dump(model, "src/mamaearth_sentiment_model.pkl")
 joblib.dump(vectorizer, "src/tfidf_vectorizer.pkl")
 
-
-
+print("✅ Artifacts saved in src/:")
+print(os.listdir("src"))
