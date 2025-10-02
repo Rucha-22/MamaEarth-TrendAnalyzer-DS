@@ -31,7 +31,8 @@ print("Accuracy:", accuracy_score(y_test, y_pred))
 print("\nClassification Report:\n", classification_report(y_test, y_pred))
 
 # Save artifacts
-joblib.dump(model, "mamaearth_sentiment_model.pkl")
-joblib.dump(vectorizer, "tfidf_vectorizer.pkl")
+joblib.dump(model, "src/mamaearth_sentiment_model.pkl")
+joblib.dump(vectorizer, "src/tfidf_vectorizer.pkl")
+
 
 
