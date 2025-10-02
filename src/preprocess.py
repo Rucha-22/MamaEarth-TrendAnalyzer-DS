@@ -12,5 +12,5 @@ def load_and_preprocess(path: str):
     return df
 
 if __name__ == "__main__":
-    df = load_and_preprocess("data/dataframe_with_category_modified.csv")
+    df = load_and_preprocess("data/processed/dataframe_with_category_modified4.csv.dvc")
     print(df.head())
