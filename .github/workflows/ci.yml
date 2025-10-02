@@ -11,16 +11,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.9"
+
       - name: Install dependencies
         run: pip install -r requirements.txt
+
       - name: Pull data (DVC)
         run: |
-          pip install dvc[gs,s3]
-          dvc pull || echo "No DVC data"
+          pip install "dvc[gs,s3]"
+          dvc pull || echo "No DVC data found"
+
       - name: Run Preprocessing
         run: python src/preprocess.py 
 
@@ -29,25 +33,45 @@ jobs:
     needs: preprocess
     steps:
       - uses: actions/checkout@v3
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.9"
+
       - name: Install dependencies
         run: pip install -r requirements.txt
+
       - name: Train Model
-        run: python src/train.py
+        run: |
+          mkdir -p src
+          python src/train.py
+
+      - name: Upload pipeline artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: sentiment-pipeline
+          path: src/sentiment_pipeline.pkl
 
   test:
     runs-on: ubuntu-latest
     needs: train
     steps:
       - uses: actions/checkout@v3
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.9"
+
       - name: Install dependencies
         run: pip install -r requirements.txt pytest
+
+      - name: Download pipeline artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: sentiment-pipeline
+          path: src/
+
       - name: Run Tests
         run: pytest src/ -v
