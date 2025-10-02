@@ -6,7 +6,7 @@ import joblib
 from preprocess import load_and_preprocess
 
 # Load and preprocess dataset
-df = load_and_preprocess("data/dataframe_with_category_modified.csv")
+df = load_and_preprocess("data/processed/dataframe_with_category_modified4.csv.dvc")
 
 X = df['clean_text']
 y = df['Sentiment_mapped']
@@ -33,3 +33,4 @@ print("\nClassification Report:\n", classification_report(y_test, y_pred))
 # Save artifacts
 joblib.dump(model, "mamaearth_sentiment_model.pkl")
 joblib.dump(vectorizer, "tfidf_vectorizer.pkl")
+
