@@ -12,9 +12,9 @@ from sklearn.metrics import accuracy_score, classification_report
 os.makedirs("src", exist_ok=True)
 
 # -------------------------------
-# Load dataset
+# Load dataset directly from CSV
 # -------------------------------
-df = load_and_preprocess("data/dataframe_with_category_modified.csv")
+df = pd.read_csv("data/dataframe_with_category_modified.csv")
 print(df.head())
 
 # Minimal text cleaning: lowercase
