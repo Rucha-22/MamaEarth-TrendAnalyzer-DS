@@ -1,52 +1,79 @@
 import os
+import pandas as pd
 import joblib
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import BernoulliNB
 from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import Pipeline
-from sklearn.metrics import classification_report, accuracy_score
-from preprocess import load_and_preprocess
+from sklearn.svm import LinearSVC
+from sklearn.metrics import accuracy_score, classification_report
 
 # Ensure src folder exists
 os.makedirs("src", exist_ok=True)
 
-# Load and preprocess dataset
+# -------------------------------
+# Load dataset
+# -------------------------------
 df = load_and_preprocess("data/dataframe_with_category_modified.csv")
+print(df.head())
 
-X = df['clean_text']
-y = df['Sentiment_mapped']  # 0 = negative, 1 = neutral, 2 = positive
+# Minimal text cleaning: lowercase
+df['clean_text'] = df['Review Texts'].str.lower()
 
+# Check class distribution
+print("Class distribution:\n", df['Sentiment_mapped'].value_counts())
+
+# -------------------------------
 # Train-test split
+# -------------------------------
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42, stratify=y
+    df['clean_text'], df['Sentiment_mapped'],
+    test_size=0.2, random_state=42, stratify=df['Sentiment_mapped']
 )
+print("Train size:", len(X_train))
+print("Test size:", len(X_test))
 
-# Build improved pipeline (TF-IDF + Logistic Regression)
-pipeline = Pipeline([
-    ("tfidf", TfidfVectorizer(
-        max_features=10000,     # larger vocabulary
-        ngram_range=(1,3),      # unigrams + bigrams + trigrams
-        stop_words='english'    # remove stopwords
-    )),
-    ("clf", LogisticRegression(
-        max_iter=2000, 
-        class_weight="balanced", 
-        C=1.5,                  # tuned regularization
-        random_state=42,
-        multi_class='multinomial',
-        solver='lbfgs'
+# -------------------------------
+# Vectorize text
+# -------------------------------
+vectorizer = TfidfVectorizer(max_features=10000, ngram_range=(1,3), stop_words='english')
+X_train_tfidf = vectorizer.fit_transform(X_train)
+X_test_tfidf = vectorizer.transform(X_test)
+print("TF-IDF shape (train):", X_train_tfidf.shape)
+print("TF-IDF shape (test):", X_test_tfidf.shape)
+
+# -------------------------------
+# Train multiple models
+# -------------------------------
+models = {
+    "BernoulliNB": BernoulliNB(),
+    "LinearSVC": LinearSVC(max_iter=2000, class_weight='balanced', random_state=42),
+    "LogisticRegression": LogisticRegression(
+        max_iter=2000, class_weight='balanced', C=1.5,
+        multi_class='multinomial', solver='lbfgs', random_state=42
+    )
+}
+
+results = {}
+
+for name, model in models.items():
+    print(f"\nTraining {name}...")
+    model.fit(X_train_tfidf, y_train)
+    y_pred = model.predict(X_test_tfidf)
+    acc = accuracy_score(y_test, y_pred)
+    print(f"{name} Accuracy: {acc:.4f}")
+    print(f"{name} Classification Report:\n", classification_report(
+        y_test, y_pred, target_names=['Negative', 'Neutral', 'Positive']
     ))
-])
+    results[name] = {"model": model, "accuracy": acc}
 
-# Train pipeline
-pipeline.fit(X_train, y_train)
+# -------------------------------
+# Select the best model
+# -------------------------------
+best_model_name = max(results, key=lambda x: results[x]['accuracy'])
+best_model = results[best_model_name]['model']
+print(f"\n✅ Best model: {best_model_name} with accuracy {results[best_model_name]['accuracy']:.4f}")
 
-# Evaluate
-y_pred = pipeline.predict(X_test)
-print("Accuracy:", accuracy_score(y_test, y_pred))
-print("\nClassification Report:\n", classification_report(y_test, y_pred, target_names=['Negative', 'Neutral', 'Positive']))
-
-# Save the trained pipeline
-model_path = "src/sentiment_pipeline.pkl"
-joblib.dump(pipeline, model_path)
-print(f"✅ Model pipeline saved at: {model_path}")
+# Save the best model and vectorizer together
+joblib.dump({"model": best_model, "vectorizer": vectorizer}, "src/best_sentiment_model.pkl")
+print("✅ Best model and vectorizer saved at: src/best_sentiment_model.pkl")
