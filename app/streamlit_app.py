@@ -1,49 +1,81 @@
 import streamlit as st
 import joblib
 import os
+import numpy as np
 
 # -----------------------------
-# Load model safely
+# Safe file loader
 # -----------------------------
-def load_model(file_path):
+def load_pickle(file_path, name="object"):
     if not os.path.exists(file_path):
-        st.error(f"File not found: {file_path}")
-        return None, None
+        st.error(f"❌ {name} file not found: {file_path}")
+        return None
     try:
-        saved = joblib.load(file_path)
-        st.success(f"Loaded '{file_path}' with joblib.")
-        # Extract model and vectorizer
-        return saved['model'], saved['vectorizer']
+        obj = joblib.load(file_path)
+        st.success(f"✅ Loaded {name} from '{file_path}'.")
+        return obj
     except Exception as e:
-        st.error(f"Failed to load '{file_path}': {e}")
-        return None, None
+        st.error(f"⚠️ Failed to load {name}: {e}")
+        return None
 
 # -----------------------------
-# Load pipeline model
+# Load Scaler and Model
 # -----------------------------
-model_file = "src/best_sentiment_model.pkl"  # Replace with your model path
-model, vectorizer = load_model(model_file)
-if model is None or vectorizer is None:
+scaler_file = "src/scaler.pkl"
+model_file = "src/best_regression_model.pkl"
+
+scaler = load_pickle(scaler_file, "Scaler")
+model = load_pickle(model_file, "Regression Model")
+
+if scaler is None or model is None:
     st.stop()
 
 # -----------------------------
 # Streamlit UI
 # -----------------------------
-st.title("Mama Earth Reviews Sentiment Analysis")
-user_input = st.text_area("Enter a review:")
+st.title("⭐ Mama Earth Product Rating Prediction")
 
-if st.button("Predict Sentiment"):
+st.write("Enter a product review below to predict its rating (1–5 scale).")
+
+user_input = st.text_area("Enter your review:")
+
+if st.button("Predict Rating"):
 
     if not user_input.strip():
         st.warning("Please enter a review.")
     else:
-        # Transform input using the saved vectorizer
-        X_input = vectorizer.transform([user_input])
+        try:
+            # -----------------------------
+            # Create dummy numeric features
+            # -----------------------------
+            # You can modify this later when you know your real feature set
+            review = user_input.strip()
+            f1 = len(review)                                  # total characters
+            f2 = len(review.split())                          # total words
+            f3 = review.count('!')                            # number of exclamations
+            f4 = sum(c.isupper() for c in review)             # uppercase count
+            X_input = np.array([[f1, f2, f3, f4]])
 
-        # Predict
-        prediction = model.predict(X_input)[0]
+            # -----------------------------
+            # Auto-adjust to scaler feature count
+            # -----------------------------
+            expected = getattr(scaler, "n_features_in_", X_input.shape[1])
+            if X_input.shape[1] < expected:
+                pad = np.zeros((1, expected - X_input.shape[1]))
+                X_input = np.hstack([X_input, pad])
+            elif X_input.shape[1] > expected:
+                X_input = X_input[:, :expected]
 
-        # Map numeric prediction to sentiment
-        sentiment_map = {0: "Negative", 1: "Neutral", 2: "Positive"}
-        sentiment = sentiment_map.get(prediction, "Unknown")
-        st.success(f"Sentiment: {sentiment}")
+            # -----------------------------
+            # Scale and predict
+            # -----------------------------
+            X_scaled = scaler.transform(X_input)
+            predicted_rating = model.predict(X_scaled)[0]
+
+            # Clip to rating range
+            predicted_rating = float(np.clip(predicted_rating, 1, 5))
+
+            st.success(f"⭐ Predicted Product Rating: {predicted_rating:.2f} / 5")
+
+        except Exception as e:
+            st.error(f"Prediction failed: {e}")
