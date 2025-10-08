@@ -43,5 +43,5 @@ jobs:
       # 6. Check Streamlit app syntax
       - name: Validate Streamlit app
         run: |
-          streamlit run app.py --server.headless true & sleep 5
+          streamlit run app/streamlit_app.py --server.headless true & sleep 5
           pkill streamlit
