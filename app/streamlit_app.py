@@ -21,8 +21,8 @@ def load_pickle(file_path, name="object"):
 # -----------------------------
 # Load Scaler and Model
 # -----------------------------
-scaler_file = "scaler.pkl"
-model_file = "best_regression_model1.pkl"
+scaler_file = "src/scaler.pkl"
+model_file = "src/best_regression_model1.pkl"
 
 scaler = load_pickle(scaler_file, "Scaler")
 model = load_pickle(model_file, "Regression Model")
