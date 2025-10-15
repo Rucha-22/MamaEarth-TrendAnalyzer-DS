@@ -6,6 +6,7 @@ import numpy as np
 # -----------------------------
 # Safe file loader
 # -----------------------------
+
 def load_pickle(file_path, name="object"):
     if not os.path.exists(file_path):
         st.error(f"❌ {name} file not found: {file_path}")
@@ -17,6 +18,7 @@ def load_pickle(file_path, name="object"):
     except Exception as e:
         st.error(f"⚠️ Failed to load {name}: {e}")
         return None
+
 
 # -----------------------------
 # Load Scaler and Model
@@ -30,12 +32,14 @@ model = load_pickle(model_file, "Regression Model")
 if scaler is None or model is None:
     st.stop()
 
+
 # -----------------------------
 # Streamlit UI
 # -----------------------------
 st.title("⭐ Mama Earth Product Rating Prediction")
 
 st.write("Fill in the product details below to predict its rating (1–5 scale).")
+
 
 # -----------------------------
 # Structured Inputs
@@ -55,6 +59,7 @@ category = st.radio(
 cat_face = 1 if category == "Face" else 0
 cat_hair = 1 if category == "Hair" else 0
 cat_other = 1 if category == "Other" else 0
+
 
 # -----------------------------
 # Predict Button
