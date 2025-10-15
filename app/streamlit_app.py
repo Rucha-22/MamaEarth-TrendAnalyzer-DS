@@ -3,9 +3,6 @@ import joblib
 import os
 import numpy as np
 
-# -----------------------------
-# Safe file loader
-# -----------------------------
 
 def load_pickle(file_path, name="object"):
     if not os.path.exists(file_path):
@@ -20,9 +17,6 @@ def load_pickle(file_path, name="object"):
         return None
 
 
-# -----------------------------
-# Load Scaler and Model
-# -----------------------------
 scaler_file = "src/scaler.pkl"
 model_file = "src/best_regression_model1.pkl"
 
@@ -33,17 +27,11 @@ if scaler is None or model is None:
     st.stop()
 
 
-# -----------------------------
-# Streamlit UI
-# -----------------------------
 st.title("⭐ Mama Earth Product Rating Prediction")
 
 st.write("Fill in the product details below to predict its rating (1–5 scale).")
 
 
-# -----------------------------
-# Structured Inputs
-# -----------------------------
 product_name = st.text_input("Product Name", "Face Cream with Vitamin C")
 mrp = st.number_input("MRP (₹)", min_value=0.0, step=10.0, value=599.0)
 
@@ -61,9 +49,6 @@ cat_hair = 1 if category == "Hair" else 0
 cat_other = 1 if category == "Other" else 0
 
 
-# -----------------------------
-# Predict Button
-# -----------------------------
 if st.button("Predict Rating"):
     try:
         # Encode sentiment
